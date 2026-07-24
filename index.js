@@ -376,29 +376,49 @@ client.on('messageUpdate', async (oldMessage, newMessage) => {
 
 client.on('guildBanAdd', async ban => {
     const channel = ban.guild.channels.cache.get('1517925042908827789');
-    if (!channel) return;
+
+    if (!channel) {
+        console.log('BAN LOG: الروم غير موجود');
+        return;
+    }
+
+    // انتظار وصول العملية إلى Audit Log
+    await new Promise(resolve => setTimeout(resolve, 1500));
 
     let executor = 'غير معروف';
     let reason = 'لا يوجد سبب';
 
     try {
         const logs = await ban.guild.fetchAuditLogs({
-            limit: 1,
+            limit: 5,
             type: AuditLogEvent.MemberBanAdd
         });
 
-        const log = logs.entries.first();
+        const log = logs.entries.find(entry =>
+            entry.target?.id === ban.user.id &&
+            Date.now() - entry.createdTimestamp < 15000
+        );
 
-        if (log) {
+        if (log?.executor) {
             executor = `<@${log.executor.id}>`;
-            reason = log.reason || 'لا يوجد سبب';
         }
-    } catch {}
+
+        if (log?.reason) {
+            reason = log.reason;
+        }
+    } catch (error) {
+        console.error('BAN LOG ERROR:', error);
+    }
 
     const embed = new EmbedBuilder()
         .setColor('#cc0000')
         .setTitle('🛑 تم تبنيد عضو')
-        .setThumbnail(ban.user.displayAvatarURL({ dynamic: true, size: 256 }))
+        .setThumbnail(
+            ban.user.displayAvatarURL({
+                dynamic: true,
+                size: 256
+            })
+        )
         .addFields(
             {
                 name: '👤 العضو المبند',
@@ -406,7 +426,7 @@ client.on('guildBanAdd', async ban => {
                 inline: false
             },
             {
-                name: '🛡️ الإداري',
+                name: '🛡️ الإداري الذي قام بالباند',
                 value: executor,
                 inline: false
             },
@@ -421,11 +441,13 @@ client.on('guildBanAdd', async ban => {
                 inline: false
             }
         )
+        .setFooter({ text: ban.guild.name })
         .setTimestamp();
 
-    channel.send({ embeds: [embed] });
+    channel.send({ embeds: [embed] }).catch(error => {
+        console.error('BAN CHANNEL SEND ERROR:', error);
+    });
 });
-
 
 
 
