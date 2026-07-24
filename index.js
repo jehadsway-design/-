@@ -2160,6 +2160,68 @@ client.on('messageCreate', async message => {
 });
 
 
+// cmd log
+
+client.on('interactionCreate', async interaction => {
+    if (!interaction.isChatInputCommand()) return;
+
+    const commandsLogChannel = interaction.guild?.channels.cache.get(
+        '1530333590418624533'
+    );
+
+    if (!commandsLogChannel) {
+        console.log('COMMAND LOG CHANNEL NOT FOUND');
+        return;
+    }
+
+    // فقط أوامر clear و play
+    if (!['clear', 'play'].includes(interaction.commandName)) return;
+
+    const options = interaction.options.data
+        .map(option => `${option.name}: ${option.value}`)
+        .join('\n') || 'لا يوجد خيارات';
+
+    const embed = new EmbedBuilder()
+        .setColor('#5865F2')
+        .setTitle('⌨️ تم استخدام أمر')
+        .addFields(
+            {
+                name: '👤 المستخدم',
+                value: `${interaction.user}\n${interaction.user.tag}`,
+                inline: false
+            },
+            {
+                name: '📝 الأمر',
+                value: `/${interaction.commandName}`,
+                inline: true
+            },
+            {
+                name: '📍 الروم',
+                value: `${interaction.channel}`,
+                inline: true
+            },
+            {
+                name: '⚙️ الخيارات',
+                value: options,
+                inline: false
+            },
+            {
+                name: '🆔 ID المستخدم',
+                value: interaction.user.id,
+                inline: false
+            }
+        )
+        .setThumbnail(
+            interaction.user.displayAvatarURL({
+                dynamic: true,
+                size: 256
+            })
+        )
+        .setTimestamp();
+
+    commandsLogChannel.send({ embeds: [embed] }).catch(console.error);
+});
+
 
 
 console.log("TOKEN EXISTS:", !!process.env.TOKEN);
